@@ -40,16 +40,27 @@ def speak_text(text):
     tts_engine.say(text)
     tts_engine.runAndWait()
 
-# SQLite database setup
-# conn = sqlite3.connect('user_data.db')
-# cursor = conn.cursor()
-# cursor.execute('''CREATE TABLE IF NOT EXISTS user_locations
-#                   (id INTEGER PRIMARY KEY, username TEXT, location TEXT)''')
+# SQLite database setup for user location
+conn = sqlite3.connect('user_data.db')
+cursor = conn.cursor()
 
-# def save_user_location(username, location):
-#     """Save user location to the database."""
-#     cursor.execute("INSERT INTO user_locations (username, location) VALUES (?, ?)", (username, location))
-    # conn.commit()
+# Create table if not exists
+cursor.execute('''CREATE TABLE IF NOT EXISTS user_locations
+                  (id INTEGER PRIMARY KEY, username TEXT, location TEXT)''')
+
+def save_user_location(username, location):
+    """Save user location to the database."""
+    cursor.execute("INSERT INTO user_locations (username, location) VALUES (?, ?)", (username, location))
+    conn.commit()
+
+def get_user_location(username):
+    """Retrieve the user's location from the database."""
+    cursor.execute("SELECT location FROM user_locations WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    return None
+
 
 def extract_name(user_input):
     """Extract a name from the user's input."""
@@ -59,19 +70,19 @@ def extract_name(user_input):
     return None
 
 # Predefined questions and answers
-questions = [
-    "How can I reduce anxiety?",
-    "What are some relaxation techniques?",
-    "How do I deal with stress at work?",
-    "Can you help me feel better?"
-]
+# questions = [
+#     "How can I reduce anxiety?",
+#     "What are some relaxation techniques?",
+#     "How do I deal with stress at work?",
+#     "Can you help me feel better?"
+# ]
 
-answers = [
-    "Try deep breathing or meditation to reduce anxiety.",
-    "Relaxation techniques include yoga, meditation, and progressive muscle relaxation.",
-    "Take short breaks, manage your time effectively, and talk to someone about your stress.",
-    "Of course! Talking about your feelings is the first step to feeling better."
-]
+# answers = [
+#     "Try deep breathing or meditation to reduce anxiety.",
+#     "Relaxation techniques include yoga, meditation, and progressive muscle relaxation.",
+#     "Take short breaks, manage your time effectively, and talk to someone about your stress.",
+#     "Of course! Talking about your feelings is the first step to feeling better."
+# ]
 
 # Emotional keywords and responses
 emotions = {
@@ -83,12 +94,12 @@ emotions = {
     "tired": "It seems like you're feeling tired. Make sure you're getting enough rest and taking care of yourself.",
     "thanks": "No need to thank me I am just a bot. Keep pushing and keep living your life!",
     "thank you": "No need to thank me I am just a bot. Keep pushing and keep living your life!",
-    "anxiety": "Try deep breathing or meditation to reduce anxiety."
-    # ,
-    # "how can i reduce anxiety?": "Try deep breathing or meditation to reduce anxiety.",
-    # "what are some relaxation techniques?": "Relaxation techniques include yoga, meditation, and progressive muscle relaxation.",
-    # "how do I deal with stress at work?": "Take short breaks, manage your time effectively, and talk to someone about your stress.",
-    # "can you help me feel better?": "Of course! Talking about your feelings is the first step to feeling better."
+    "anxiety": "Try deep breathing or meditation to reduce anxiety.",
+    "reduce anxiety": "Try deep breathing or meditation to reduce anxiety.",
+    "relaxation techniques": "Relaxation techniques include yoga, meditation, and progressive muscle relaxation.",
+    "stress at work": "Take short breaks, manage your time effectively, and talk to someone about your stress.",
+    "help me": "Of course! Talking about your feelings is the first step to feeling better.",
+    "feel better": "Of course! Talking about your feelings is the first step to feeling better."
 }
 
 # Stop words for text preprocessing
@@ -124,25 +135,18 @@ def get_bot_response(user_input):
         return emotion_response
 
     # Process input for similarity matching
-    vectorizer = TfidfVectorizer(tokenizer=preprocess, token_pattern=None)
-    tfidf = vectorizer.fit_transform(questions + [user_input])
-    similarities = cosine_similarity(tfidf[-1], tfidf[:-1])
-    max_sim_score = similarities[0].max()
+    # vectorizer = TfidfVectorizer(tokenizer=preprocess, token_pattern=None)
+    # tfidf = vectorizer.fit_transform(questions + [user_input])
+    # similarities = cosine_similarity(tfidf[-1], tfidf[:-1])
+    # max_sim_score = similarities[0].max()
 
     # Respond with rephrase message if input is too similar to predefined questions
-    if max_sim_score > 0.3:
-        return "I'm not sure how to help with that. Can you rephrase?"
+    # if max_sim_score > 0.3:
+    #     return "I'm not sure how to help with that. Can you rephrase?"
 
     # Fallback response if no match or emotion is detected
     return "I'm here to help, but I didn't quite understand. Could you tell me more?"
 
-
-#def ask_user_location():
-#    """Ask for and save user's name and location."""
-#    username = input("What's your name? ")
-#    location = input("Where are you located? ")
-#    save_user_location(username, location)
-#    print(f"Thanks, {username}! Your location #({location}) has been saved.")
 
 def chatbot():
     """Main chatbot loop."""
@@ -150,7 +154,7 @@ def chatbot():
     setup_tts_engine()
     
     # Greet the user immediately before starting the conversation loop
-    greeting_message = "Hi! How can I help you today? Type 'quit' to exit."
+    greeting_message = "Hi! How can I help you today? Press 'quit' to exit."
     print(greeting_message)
     speak_text(greeting_message)  # Speak the greeting before entering the loop
 
